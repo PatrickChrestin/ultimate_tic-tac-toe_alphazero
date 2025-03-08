@@ -1,9 +1,8 @@
 import tensorflow as tf
-import keras
-from keras import layers
-from keras.models import Model
-from keras import models
-from keras.optimizers import Adam
+from tensorflow.keras import layers
+from tensorflow.keras.models import Model
+from tensorflow.keras import models
+from tensorflow.keras.optimizers import Adam
 import numpy as np
 import math
 from collections import deque
@@ -12,6 +11,7 @@ import time
 from datetime import datetime
 import h5py
 import copy
+from tqdm import tqdm
 
 """ 
 Functions for game board
@@ -312,7 +312,7 @@ def mcts(s, current_player, mini_board):
     if len(possibleA) > 0:
         if sTuple not in P.keys():
 
-            policy, v = nn.predict(sArray.reshape(1,9,9))
+            policy, v = nn.predict(sArray.reshape(1,9,9), verbose=0)
             v = v[0][0]
             valids = np.zeros(81)
             np.put(valids,possibleA,1)
@@ -423,7 +423,7 @@ def playgame():
 def neural_network():
     
     input_layer = layers.Input(shape=(9,9), name="BoardInput")
-    reshape = layers.core.Reshape((9,9,1))(input_layer)
+    reshape = layers.Reshape((9,9,1))(input_layer)
     conv_1 = layers.Conv2D(128, (3,3), padding='valid', activation='relu', name='conv1')(reshape)
     conv_2 = layers.Conv2D(128, (3,3), padding='valid', activation='relu', name='conv2')(conv_1)
     conv_3 = layers.Conv2D(128, (3,3), padding='valid', activation='relu', name='conv3')(conv_2)
@@ -463,7 +463,7 @@ def train_nn(nn, game_mem):
     value = np.array(value)
     
     
-    history = nn.fit(state, [policy, value], batch_size=32, epochs=training_epochs, verbose=1)
+    history = nn.fit(state, [policy, value], batch_size=32, epochs=training_epochs, verbose=0)
 
 
 
@@ -486,7 +486,7 @@ def pit(nn, new_nn):
 
         while True:
             
-            policy, v = nn.predict(board_to_array(s, mini_board, 1).reshape(1,9,9))
+            policy, v = nn.predict(board_to_array(s, mini_board, 1).reshape(1,9,9), verbose=0)
             valids = np.zeros(81)
 
             possibleA = possiblePos(s,mini_board)
@@ -509,7 +509,7 @@ def pit(nn, new_nn):
 
             # new nn makes move
 
-            policy, v = new_nn.predict(board_to_array(s, mini_board, -1).reshape(1,9,9))
+            policy, v = new_nn.predict(board_to_array(s, mini_board, -1).reshape(1,9,9), verbose=0)
             valids = np.zeros(81)
 
             possibleA = possiblePos(s,mini_board)
@@ -560,7 +560,7 @@ def train():
 
     game_mem = []
 
-    for episode in range(train_episodes):
+    for _ in tqdm(range(train_episodes)):
         
         nn.save('temp.h5')
         old_nn = models.load_model('temp.h5')
